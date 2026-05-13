@@ -8,6 +8,7 @@ import {
   NoSubscriberBehavior,
   StreamType,
 } from "@discordjs/voice";
+
 import { spawn, execFileSync } from "node:child_process";
 import { MusicQueue, Track } from "./queue.js";
 import { logger } from "../lib/logger.js";
@@ -40,9 +41,7 @@ function createYtdlpStream(url: string) {
 
   const ffmpeg = spawn(FFMPEG_PATH, [
     "-i", "pipe:0",
-    "-f", "opus",
-    "-c:a", "libopus",
-    "-b:a", "128k",
+    "-f", "s16le",
     "-ar", "48000",
     "-ac", "2",
     "-vn",
@@ -169,7 +168,7 @@ export class GuildPlayer {
     const stream = createYtdlpStream(track.url);
 
     const resource = createAudioResource(stream, {
-      inputType: StreamType.OggOpus,
+      inputType: StreamType.Raw,
       inlineVolume: true,
     });
 
