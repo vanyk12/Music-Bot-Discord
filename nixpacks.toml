@@ -1,9 +1,10 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "pnpm", "ffmpeg", "python3"]
+nixPkgs = ["nodejs_20", "pnpm", "ffmpeg", "python3", "yt-dlp"]
 
 [phases.install]
 cmds = [
-  "pip3 install --upgrade yt-dlp --break-system-packages 2>/dev/null || pip install --upgrade yt-dlp --break-system-packages 2>/dev/null || python3 -m pip install --upgrade yt-dlp 2>/dev/null || true",
+  "pip3 install --upgrade yt-dlp --break-system-packages 2>/dev/null || true",
+  "echo 'yt-dlp version:' && yt-dlp --version",
   "pnpm install --no-frozen-lockfile"
 ]
 

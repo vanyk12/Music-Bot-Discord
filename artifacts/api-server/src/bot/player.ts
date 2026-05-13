@@ -17,13 +17,20 @@ function resolveYtdlp(): string {
   if (process.env["YTDLP_PATH"]) return process.env["YTDLP_PATH"];
   const candidates = [
     "/nix/store/xighyx5xgdy7w1bmnrgldkxij0gyjq1x-yt-dlp-2025.6.30/bin/yt-dlp",
+    "/root/.local/bin/yt-dlp",
+    "/home/app/.local/bin/yt-dlp",
     "/usr/local/bin/yt-dlp",
     "/usr/bin/yt-dlp",
     "yt-dlp",
   ];
   for (const p of candidates) {
-    try { execFileSync(p, ["--version"], { stdio: "ignore" }); return p; } catch { /* try next */ }
+    try {
+      execFileSync(p, ["--version"], { stdio: "ignore" });
+      logger.info({ path: p }, "Found yt-dlp");
+      return p;
+    } catch { /* try next */ }
   }
+  logger.warn("yt-dlp not found in any known path, falling back to 'yt-dlp'");
   return "yt-dlp";
 }
 
