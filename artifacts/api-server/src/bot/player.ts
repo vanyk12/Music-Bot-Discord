@@ -8,12 +8,26 @@ import {
   NoSubscriberBehavior,
   StreamType,
 } from "@discordjs/voice";
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { MusicQueue, Track } from "./queue.js";
 import { logger } from "../lib/logger.js";
 
-const YTDLP_PATH = "/nix/store/39bpsx6xv7qrcnnbv65zmh8sabqdyl49-yt-dlp-2024.12.23/bin/yt-dlp";
-const FFMPEG_PATH = "ffmpeg";
+function resolveYtdlp(): string {
+  if (process.env["YTDLP_PATH"]) return process.env["YTDLP_PATH"];
+  const candidates = [
+    "/nix/store/39bpsx6xv7qrcnnbv65zmh8sabqdyl49-yt-dlp-2024.12.23/bin/yt-dlp",
+    "/usr/local/bin/yt-dlp",
+    "/usr/bin/yt-dlp",
+    "yt-dlp",
+  ];
+  for (const p of candidates) {
+    try { execFileSync(p, ["--version"], { stdio: "ignore" }); return p; } catch { /* try next */ }
+  }
+  return "yt-dlp";
+}
+
+const YTDLP_PATH = resolveYtdlp();
+const FFMPEG_PATH = process.env["FFMPEG_PATH"] ?? "ffmpeg";
 
 function createYtdlpStream(url: string) {
   const ytdlp = spawn(YTDLP_PATH, [

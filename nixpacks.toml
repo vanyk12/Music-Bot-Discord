@@ -1,0 +1,5 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm", "ffmpeg", "yt-dlp"]
+
+[start]
+cmd = "pnpm --filter @workspace/api-server run start"
