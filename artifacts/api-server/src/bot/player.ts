@@ -37,13 +37,14 @@ function resolveYtdlp(): string {
 const YTDLP_PATH = resolveYtdlp();
 const FFMPEG_PATH = process.env["FFMPEG_PATH"] ?? "ffmpeg";
 
-async function getDirectUrl(url: string): Promise<string> {
+async function tryGetUrl(url: string, playerClient: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const proc = spawn(YTDLP_PATH, [
-      "-f", "bestaudio",
+      "-f", "bestaudio/best",
       "--get-url",
       "--no-playlist",
       "--no-warnings",
+      "--extractor-args", `youtube:player_client=${playerClient}`,
       url,
     ]);
     let output = "";
@@ -53,15 +54,30 @@ async function getDirectUrl(url: string): Promise<string> {
     proc.on("close", (code) => {
       const directUrl = output.trim().split("\n")[0];
       if (code !== 0 || !directUrl) {
-        logger.error({ code, errOutput: errOutput.slice(0, 300), url }, "yt-dlp --get-url failed");
-        reject(new Error(`yt-dlp failed with code ${code}: ${errOutput.slice(0, 200)}`));
+        reject(new Error(`client=${playerClient} failed (${code}): ${errOutput.slice(0, 150)}`));
       } else {
-        logger.info({ directUrl: directUrl.slice(0, 80) }, "Got direct stream URL");
         resolve(directUrl);
       }
     });
     proc.on("error", (err) => reject(err));
   });
+}
+
+async function getDirectUrl(url: string): Promise<string> {
+  const clients = ["ios", "android", "web"];
+  let lastError = "";
+  for (const client of clients) {
+    try {
+      const directUrl = await tryGetUrl(url, client);
+      logger.info({ client, directUrl: directUrl.slice(0, 80) }, "Got direct stream URL");
+      return directUrl;
+    } catch (err) {
+      lastError = String(err);
+      logger.warn({ client, err: lastError.slice(0, 150) }, "Client failed, trying next");
+    }
+  }
+  logger.error({ url, lastError }, "All yt-dlp clients failed");
+  throw new Error(`All clients failed: ${lastError}`);
 }
 
 function createFfmpegStream(directUrl: string) {
@@ -98,6 +114,8 @@ export async function searchYoutube(query: string): Promise<{ title: string; url
     const proc = spawn(YTDLP_PATH, [
       "--flat-playlist",
       "--dump-json",
+      "--no-warnings",
+      "--extractor-args", "youtube:player_client=ios",
       searchQuery,
     ]);
 
