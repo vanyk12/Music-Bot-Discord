@@ -52,8 +52,19 @@ function createYtdlpStream(url: string) {
 
   ytdlp.on("error", (err) => logger.error({ err }, "yt-dlp spawn error"));
   ffmpeg.on("error", (err) => logger.error({ err }, "ffmpeg spawn error"));
-  ytdlp.stderr.on("data", (d) => logger.debug({ msg: d.toString() }, "yt-dlp stderr"));
-  ffmpeg.stderr.on("data", () => { /* suppress */ });
+  ytdlp.stderr.on("data", (d: Buffer) => logger.debug({ msg: d.toString().trim() }, "yt-dlp stderr"));
+  ffmpeg.stderr.on("data", (d: Buffer) => {
+    const msg = d.toString().trim();
+    if (msg) logger.debug({ msg }, "ffmpeg stderr");
+  });
+  ytdlp.on("close", (code) => {
+    if (code !== 0) logger.error({ code }, "yt-dlp exited with error");
+  });
+  ffmpeg.on("close", (code) => {
+    if (code !== 0) logger.error({ code }, "ffmpeg exited with error");
+  });
+
+  logger.info({ ytdlpPath: YTDLP_PATH, ffmpegPath: FFMPEG_PATH, url }, "Starting audio stream");
 
   return ffmpeg.stdout;
 }

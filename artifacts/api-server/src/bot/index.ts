@@ -29,6 +29,11 @@ for (const cmd of [play, pause, resume, skip, stop, volume, queue, loop, shuffle
 }
 
 export async function startBot() {
+  if (process.env["DISABLE_BOT"] === "true") {
+    logger.info("DISABLE_BOT=true — бот не запущен на этом окружении.");
+    return;
+  }
+
   const token = process.env["DISCORD_TOKEN"];
   if (!token) {
     logger.warn("DISCORD_TOKEN не задан — бот не запущен.");
