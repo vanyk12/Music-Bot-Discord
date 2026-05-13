@@ -29,6 +29,13 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      "ffmpeg-static",
+      "play-opus",
+      "play-audio",
+      "prism-media",
+      "@snazzah/davey",
+      "@snazzah/davey-linux-x64-gnu",
+      "@snazzah/davey-wasm32-wasi",
       "sharp",
       "better-sqlite3",
       "sqlite3",

@@ -1,45 +1,59 @@
-# [Project name]
+# Discord Music Bot
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Discord-бот для воспроизведения музыки с YouTube в голосовых каналах. Поддерживает поиск по названию, очередь треков, управление громкостью и повтор.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/api-server run dev` — запустить сервер + бота (порт 5000)
+- `pnpm run typecheck` — полная проверка типов
+- `pnpm run build` — typecheck + сборка всех пакетов
+- Required env: `DISCORD_TOKEN` — токен Discord-бота
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
+- Discord: discord.js v14, @discordjs/voice
+- Аудио: yt-dlp (системный), ffmpeg (системный), @discordjs/opus
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/api-server/src/bot/` — весь код Discord-бота
+- `artifacts/api-server/src/bot/commands/` — slash-команды
+- `artifacts/api-server/src/bot/player.ts` — плеер + интеграция с yt-dlp
+- `artifacts/api-server/src/bot/queue.ts` — очередь треков
+- `artifacts/api-server/src/bot/manager.ts` — менеджер плееров по серверам
+
+## Bot Commands
+
+| Команда | Описание |
+|---------|----------|
+| `/play <запрос>` | Воспроизвести трек с YouTube (ссылка или название) |
+| `/pause` | Поставить на паузу |
+| `/resume` | Продолжить воспроизведение |
+| `/skip` | Пропустить текущий трек |
+| `/stop` | Остановить и покинуть канал |
+| `/volume <0-200>` | Установить громкость |
+| `/queue` | Показать очередь |
+| `/nowplaying` | Что сейчас играет |
+| `/loop` | Вкл/выкл повтор трека |
+| `/shuffle` | Перемешать очередь |
+| `/remove <номер>` | Удалить трек из очереди |
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Бот запускается внутри API-сервера (Express), а не как отдельный процесс — упрощает деплой
+- Для стриминга аудио используется системный `yt-dlp` + `ffmpeg` через `child_process.spawn` вместо Node.js библиотек — надёжнее и без нативных зависимостей в esbuild
+- Глобальные slash-команды регистрируются автоматически при старте бота
+- Каждый Discord-сервер получает свой независимый `GuildPlayer` с отдельной очередью
 
-## Product
+## Gotchas
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- `@snazzah/davey` и `prism-media` нужно держать в `dependencies` (не externalized) — они нужны `@discordjs/voice` в рантайме
+- Команды регистрируются глобально — может занять до 1 часа для обновления на всех серверах
+- yt-dlp путь захардкожен: `/nix/store/39bpsx6xv7qrcnnbv65zmh8sabqdyl49-yt-dlp-2024.12.23/bin/yt-dlp`
 
 ## User preferences
 
 _Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
