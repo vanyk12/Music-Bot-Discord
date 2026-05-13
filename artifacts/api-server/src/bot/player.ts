@@ -15,7 +15,7 @@ import { logger } from "../lib/logger.js";
 function resolveYtdlp(): string {
   if (process.env["YTDLP_PATH"]) return process.env["YTDLP_PATH"];
   const candidates = [
-    "/nix/store/39bpsx6xv7qrcnnbv65zmh8sabqdyl49-yt-dlp-2024.12.23/bin/yt-dlp",
+    "/nix/store/xighyx5xgdy7w1bmnrgldkxij0gyjq1x-yt-dlp-2025.6.30/bin/yt-dlp",
     "/usr/local/bin/yt-dlp",
     "/usr/bin/yt-dlp",
     "yt-dlp",
@@ -65,9 +65,8 @@ export async function searchYoutube(query: string): Promise<{ title: string; url
     const searchQuery = isUrl ? query : `ytsearch1:${query}`;
 
     const proc = spawn(YTDLP_PATH, [
-      "--no-playlist",
+      "--flat-playlist",
       "--dump-json",
-      "--skip-download",
       searchQuery,
     ]);
 

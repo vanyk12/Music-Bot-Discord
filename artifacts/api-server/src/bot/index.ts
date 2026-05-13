@@ -71,5 +71,13 @@ export async function startBot() {
     }
   });
 
+  process.on("unhandledRejection", (err) => {
+    logger.error({ err }, "Unhandled promise rejection");
+  });
+
+  process.on("uncaughtException", (err) => {
+    logger.error({ err }, "Uncaught exception");
+  });
+
   await client.login(token);
 }
