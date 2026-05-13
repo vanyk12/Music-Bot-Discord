@@ -30,17 +30,40 @@ function resolveYtdlp(): string {
 const YTDLP_PATH = resolveYtdlp();
 const FFMPEG_PATH = process.env["FFMPEG_PATH"] ?? "ffmpeg";
 
-function createYtdlpStream(url: string) {
-  const ytdlp = spawn(YTDLP_PATH, [
-    "-f", "bestaudio[ext=webm]/bestaudio/best",
-    "--no-playlist",
-    "-o", "-",
-    "--quiet",
-    url,
-  ]);
+async function getDirectUrl(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(YTDLP_PATH, [
+      "-f", "bestaudio",
+      "--get-url",
+      "--no-playlist",
+      "--no-warnings",
+      url,
+    ]);
+    let output = "";
+    let errOutput = "";
+    proc.stdout.on("data", (d: Buffer) => { output += d.toString(); });
+    proc.stderr.on("data", (d: Buffer) => { errOutput += d.toString(); });
+    proc.on("close", (code) => {
+      const directUrl = output.trim().split("\n")[0];
+      if (code !== 0 || !directUrl) {
+        logger.error({ code, errOutput: errOutput.slice(0, 300), url }, "yt-dlp --get-url failed");
+        reject(new Error(`yt-dlp failed with code ${code}: ${errOutput.slice(0, 200)}`));
+      } else {
+        logger.info({ directUrl: directUrl.slice(0, 80) }, "Got direct stream URL");
+        resolve(directUrl);
+      }
+    });
+    proc.on("error", (err) => reject(err));
+  });
+}
 
+function createFfmpegStream(directUrl: string) {
   const ffmpeg = spawn(FFMPEG_PATH, [
-    "-i", "pipe:0",
+    "-reconnect", "1",
+    "-reconnect_streamed", "1",
+    "-reconnect_delay_max", "5",
+    "-headers", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "-i", directUrl,
     "-f", "s16le",
     "-ar", "48000",
     "-ac", "2",
@@ -48,23 +71,14 @@ function createYtdlpStream(url: string) {
     "pipe:1",
   ]);
 
-  ytdlp.stdout.pipe(ffmpeg.stdin);
-
-  ytdlp.on("error", (err) => logger.error({ err }, "yt-dlp spawn error"));
   ffmpeg.on("error", (err) => logger.error({ err }, "ffmpeg spawn error"));
-  ytdlp.stderr.on("data", (d: Buffer) => logger.debug({ msg: d.toString().trim() }, "yt-dlp stderr"));
   ffmpeg.stderr.on("data", (d: Buffer) => {
     const msg = d.toString().trim();
-    if (msg) logger.debug({ msg }, "ffmpeg stderr");
-  });
-  ytdlp.on("close", (code) => {
-    if (code !== 0) logger.error({ code }, "yt-dlp exited with error");
+    if (msg && !msg.includes("Press [q]")) logger.debug({ msg }, "ffmpeg stderr");
   });
   ffmpeg.on("close", (code) => {
-    if (code !== 0) logger.error({ code }, "ffmpeg exited with error");
+    if (code !== 0 && code !== null) logger.error({ code }, "ffmpeg exited with error");
   });
-
-  logger.info({ ytdlpPath: YTDLP_PATH, ffmpegPath: FFMPEG_PATH, url }, "Starting audio stream");
 
   return ffmpeg.stdout;
 }
@@ -176,7 +190,8 @@ export class GuildPlayer {
   }
 
   async playTrack(track: Track): Promise<void> {
-    const stream = createYtdlpStream(track.url);
+    const directUrl = await getDirectUrl(track.url);
+    const stream = createFfmpegStream(directUrl);
 
     const resource = createAudioResource(stream, {
       inputType: StreamType.Raw,
@@ -187,7 +202,7 @@ export class GuildPlayer {
     this.audioPlayer.play(resource);
     this.paused = false;
 
-    await entersState(this.audioPlayer, AudioPlayerStatus.Playing, 10_000);
+    await entersState(this.audioPlayer, AudioPlayerStatus.Playing, 15_000);
   }
 
   async start(): Promise<void> {
