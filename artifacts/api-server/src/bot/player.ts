@@ -66,35 +66,47 @@ export async function searchYoutube(query: string): Promise<{ title: string; url
 
     const proc = spawn(YTDLP_PATH, [
       "--no-playlist",
-      "--print", "%(title)s\n%(webpage_url)s\n%(duration)s\n%(thumbnail)s",
+      "--dump-json",
       "--skip-download",
-      "--quiet",
       searchQuery,
     ]);
 
     let output = "";
-    proc.stdout.on("data", (d) => { output += d.toString(); });
-    proc.stderr.on("data", () => { /* suppress */ });
+    let errOutput = "";
+    proc.stdout.on("data", (d: Buffer) => { output += d.toString(); });
+    proc.stderr.on("data", (d: Buffer) => { errOutput += d.toString(); });
 
     proc.on("close", (code) => {
-      if (code !== 0 || !output.trim()) {
+      if (!output.trim()) {
+        logger.warn({ code, errOutput, query }, "yt-dlp returned no output");
         resolve(null);
         return;
       }
-      const lines = output.trim().split("\n");
-      const title = lines[0] ?? "Неизвестно";
-      const url = lines[1] ?? searchQuery;
-      const durationSec = parseInt(lines[2] ?? "0", 10) || 0;
-      const thumbnail = lines[3] ?? undefined;
-      resolve({
-        title,
-        url,
-        duration: formatDuration(durationSec),
-        thumbnail: thumbnail && thumbnail !== "NA" ? thumbnail : undefined,
-      });
+      try {
+        const firstLine = output.trim().split("\n")[0]!;
+        const info = JSON.parse(firstLine) as {
+          title?: string;
+          webpage_url?: string;
+          url?: string;
+          duration?: number;
+          thumbnail?: string;
+        };
+        resolve({
+          title: info.title ?? "Неизвестно",
+          url: info.webpage_url ?? info.url ?? searchQuery,
+          duration: formatDuration(info.duration ?? 0),
+          thumbnail: info.thumbnail,
+        });
+      } catch {
+        logger.warn({ output: output.slice(0, 200), query }, "Failed to parse yt-dlp JSON");
+        resolve(null);
+      }
     });
 
-    proc.on("error", () => resolve(null));
+    proc.on("error", (err) => {
+      logger.error({ err }, "yt-dlp spawn error in search");
+      resolve(null);
+    });
   });
 }
 
