@@ -1,5 +1,11 @@
 [phases.setup]
 nixPkgs = ["nodejs_20", "pnpm", "ffmpeg", "yt-dlp"]
 
+[phases.install]
+cmds = ["pnpm install --no-frozen-lockfile"]
+
+[phases.build]
+cmds = ["pnpm --filter @workspace/api-server run build"]
+
 [start]
 cmd = "pnpm --filter @workspace/api-server run start"
