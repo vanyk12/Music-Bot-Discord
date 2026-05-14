@@ -185,6 +185,8 @@ function pad(n: number): string {
   return String(n).padStart(2, "0");
 }
 
+const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+
 export class GuildPlayer {
   public readonly guildId: string;
   public queue: MusicQueue;
@@ -192,6 +194,7 @@ export class GuildPlayer {
   public audioPlayer: AudioPlayer;
   public volume = 100;
   public paused = false;
+  private inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(guildId: string) {
     this.guildId = guildId;
@@ -216,12 +219,32 @@ export class GuildPlayer {
         );
       } else {
         this.queue.currentTrack = null;
+        this.startInactivityTimer();
       }
     });
 
     this.audioPlayer.on("error", (err) => {
       logger.error({ err }, "AudioPlayer error");
+      this.startInactivityTimer();
     });
+  }
+
+  private startInactivityTimer() {
+    this.clearInactivityTimer();
+    this.inactivityTimer = setTimeout(() => {
+      if (!this.queue.currentTrack && this.queue.isEmpty()) {
+        logger.info({ guildId: this.guildId }, "Inactivity timeout — leaving voice channel");
+        this.stop();
+      }
+    }, INACTIVITY_TIMEOUT_MS);
+    logger.info({ guildId: this.guildId }, "Inactivity timer started (5 min)");
+  }
+
+  private clearInactivityTimer() {
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+      this.inactivityTimer = null;
+    }
   }
 
   setConnection(connection: VoiceConnection) {
@@ -230,6 +253,7 @@ export class GuildPlayer {
   }
 
   async playTrack(track: Track): Promise<void> {
+    this.clearInactivityTimer();
     const directUrl = await getDirectUrl(track.url);
     const stream = createFfmpegStream(directUrl);
 
@@ -246,6 +270,7 @@ export class GuildPlayer {
   }
 
   async start(): Promise<void> {
+    this.clearInactivityTimer();
     const next = this.queue.dequeue();
     if (!next) return;
     this.queue.currentTrack = next;
@@ -282,6 +307,7 @@ export class GuildPlayer {
   }
 
   stop(): void {
+    this.clearInactivityTimer();
     this.queue.clear();
     this.queue.currentTrack = null;
     this.queue.loop = false;
