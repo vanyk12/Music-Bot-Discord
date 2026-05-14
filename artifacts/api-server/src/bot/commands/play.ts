@@ -32,12 +32,12 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
     return;
   }
   try {
-    const results = await searchSoundCloudMultiple(focused, 5);
+    const results = await searchSoundCloudMultiple(focused, 10);
     await interaction.respond(
       results
         .filter((r) => r.url)
         .map((r) => ({
-          name: `${r.title} [${r.duration}]`.slice(0, 100),
+          name: `🎵 ${r.title} [${r.duration}]`.slice(0, 100),
           value: r.url,
         })),
     );
