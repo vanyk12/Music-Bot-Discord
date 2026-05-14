@@ -3,6 +3,7 @@ import {
   GatewayIntentBits,
   Interaction,
   ChatInputCommandInteraction,
+  AutocompleteInteraction,
 } from "discord.js";
 import { logger } from "../lib/logger.js";
 import { deployCommands } from "./deploy-commands.js";
@@ -21,6 +22,7 @@ import * as remove from "./commands/remove.js";
 type Command = {
   data: { name: string };
   execute: (i: ChatInputCommandInteraction) => Promise<unknown>;
+  autocomplete?: (i: AutocompleteInteraction) => Promise<unknown>;
 };
 
 const commandMap = new Map<string, Command>();
@@ -58,6 +60,19 @@ export async function startBot() {
   });
 
   client.on("interactionCreate", async (interaction: Interaction) => {
+    if (interaction.isAutocomplete()) {
+      const command = commandMap.get(interaction.commandName);
+      if (command?.autocomplete) {
+        try {
+          await command.autocomplete(interaction as AutocompleteInteraction);
+        } catch (err) {
+          logger.error({ err, cmd: interaction.commandName }, "Ошибка autocomplete");
+          try { await (interaction as AutocompleteInteraction).respond([]); } catch { /* ignore */ }
+        }
+      }
+      return;
+    }
+
     if (!interaction.isChatInputCommand()) return;
 
     const command = commandMap.get(interaction.commandName);

@@ -1,5 +1,6 @@
 import {
   ChatInputCommandInteraction,
+  AutocompleteInteraction,
   GuildMember,
   SlashCommandBuilder,
   EmbedBuilder,
@@ -10,7 +11,7 @@ import {
   entersState,
 } from "@discordjs/voice";
 import { getOrCreatePlayer } from "../manager.js";
-import { searchSoundCloud } from "../player.js";
+import { searchSoundCloud, searchSoundCloudMultiple } from "../player.js";
 import { Track } from "../queue.js";
 
 export const data = new SlashCommandBuilder()
@@ -19,9 +20,31 @@ export const data = new SlashCommandBuilder()
   .addStringOption((opt) =>
     opt
       .setName("query")
-      .setDescription("Ссылка на SoundCloud или название песни")
-      .setRequired(true),
+      .setDescription("Название песни или ссылка на SoundCloud")
+      .setRequired(true)
+      .setAutocomplete(true),
   );
+
+export async function autocomplete(interaction: AutocompleteInteraction) {
+  const focused = interaction.options.getFocused();
+  if (!focused || focused.trim().length < 2) {
+    await interaction.respond([]);
+    return;
+  }
+  try {
+    const results = await searchSoundCloudMultiple(focused, 5);
+    await interaction.respond(
+      results
+        .filter((r) => r.url)
+        .map((r) => ({
+          name: `${r.title} [${r.duration}]`.slice(0, 100),
+          value: r.url,
+        })),
+    );
+  } catch {
+    await interaction.respond([]);
+  }
+}
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
@@ -37,7 +60,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const guildId = interaction.guildId!;
   const player = getOrCreatePlayer(guildId);
 
-  const info = await searchSoundCloud(query);
+  const isUrl = query.startsWith("http://") || query.startsWith("https://");
+  const info = isUrl
+    ? await searchSoundCloud(query)
+    : await searchSoundCloud(query);
+
   if (!info) {
     return interaction.editReply("❌ Ничего не найдено на SoundCloud.");
   }

@@ -90,6 +90,38 @@ function createFfmpegStream(directUrl: string) {
   return ffmpeg.stdout;
 }
 
+export async function searchSoundCloudMultiple(query: string, limit = 5): Promise<{ title: string; url: string; duration: string; thumbnail?: string }[]> {
+  return new Promise((resolve) => {
+    if (!query || query.trim().length < 2) { resolve([]); return; }
+    const searchQuery = `scsearch${limit}:${query}`;
+    const proc = spawn(YTDLP_PATH, [
+      "--flat-playlist",
+      "--dump-json",
+      "--no-warnings",
+      searchQuery,
+    ]);
+    let output = "";
+    proc.stdout.on("data", (d: Buffer) => { output += d.toString(); });
+    proc.on("close", () => {
+      const results: { title: string; url: string; duration: string; thumbnail?: string }[] = [];
+      for (const line of output.trim().split("\n")) {
+        if (!line) continue;
+        try {
+          const info = JSON.parse(line) as { title?: string; webpage_url?: string; url?: string; duration?: number; thumbnail?: string };
+          results.push({
+            title: info.title ?? "Неизвестно",
+            url: info.webpage_url ?? info.url ?? "",
+            duration: formatDuration(info.duration ?? 0),
+            thumbnail: info.thumbnail,
+          });
+        } catch { /* skip bad lines */ }
+      }
+      resolve(results);
+    });
+    proc.on("error", () => resolve([]));
+  });
+}
+
 export async function searchSoundCloud(query: string): Promise<{ title: string; url: string; duration: string; thumbnail?: string } | null> {
   return new Promise((resolve) => {
     const isUrl = query.startsWith("http://") || query.startsWith("https://");
