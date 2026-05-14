@@ -7,6 +7,7 @@ import {
 } from "discord.js";
 import { logger } from "../lib/logger.js";
 import { deployCommands } from "./deploy-commands.js";
+import { initializeSoundCloud } from "./player.js";
 import * as play from "./commands/play.js";
 import * as pause from "./commands/pause.js";
 import * as resume from "./commands/resume.js";
@@ -52,6 +53,7 @@ export async function startBot() {
 
   client.once("ready", async (c) => {
     logger.info(`Бот запущен как ${c.user.tag}`);
+    await initializeSoundCloud();
     try {
       await deployCommands(token, c.user.id);
     } catch (err) {

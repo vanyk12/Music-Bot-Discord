@@ -6,92 +6,23 @@ import {
   createAudioResource,
   entersState,
   NoSubscriberBehavior,
-  StreamType,
 } from "@discordjs/voice";
 
-import { spawn, execFileSync } from "node:child_process";
 import playdl, { SoundCloudTrack } from "play-dl";
 import { MusicQueue, Track } from "./queue.js";
 import { logger } from "../lib/logger.js";
 
-function resolveYtdlp(): string {
-  if (process.env["YTDLP_PATH"]) return process.env["YTDLP_PATH"];
-  const candidates = [
-    "/nix/store/xighyx5xgdy7w1bmnrgldkxij0gyjq1x-yt-dlp-2025.6.30/bin/yt-dlp",
-    "/root/.local/bin/yt-dlp",
-    "/home/app/.local/bin/yt-dlp",
-    "/usr/local/bin/yt-dlp",
-    "/usr/bin/yt-dlp",
-    "yt-dlp",
-  ];
-  for (const p of candidates) {
-    try {
-      execFileSync(p, ["--version"], { stdio: "ignore" });
-      logger.info({ path: p }, "Found yt-dlp");
-      return p;
-    } catch { /* try next */ }
+export async function initializeSoundCloud(): Promise<void> {
+  try {
+    const clientId = await playdl.getFreeClientID();
+    await playdl.setToken({ soundcloud: { client_id: clientId } });
+    logger.info({ clientId: clientId.slice(0, 10) + "..." }, "SoundCloud client_id initialized");
+  } catch (err) {
+    logger.warn({ err }, "Failed to initialize SoundCloud client_id — search may not work");
   }
-  logger.warn("yt-dlp not found in any known path, falling back to 'yt-dlp'");
-  return "yt-dlp";
 }
 
-const YTDLP_PATH = resolveYtdlp();
-const FFMPEG_PATH = process.env["FFMPEG_PATH"] ?? "ffmpeg";
-
-async function getDirectUrl(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(YTDLP_PATH, [
-      "-f", "bestaudio/best",
-      "--get-url",
-      "--no-playlist",
-      "--no-warnings",
-      url,
-    ]);
-    let output = "";
-    let errOutput = "";
-    proc.stdout.on("data", (d: Buffer) => { output += d.toString(); });
-    proc.stderr.on("data", (d: Buffer) => { errOutput += d.toString(); });
-    proc.on("close", (code) => {
-      const directUrl = output.trim().split("\n")[0];
-      if (code !== 0 || !directUrl) {
-        logger.error({ code, errOutput: errOutput.slice(0, 300), url }, "yt-dlp --get-url failed");
-        reject(new Error(`yt-dlp failed (${code}): ${errOutput.slice(0, 200)}`));
-      } else {
-        logger.info({ directUrl: directUrl.slice(0, 80) }, "Got direct stream URL");
-        resolve(directUrl);
-      }
-    });
-    proc.on("error", (err) => reject(err));
-  });
-}
-
-function createFfmpegStream(directUrl: string) {
-  const ffmpeg = spawn(FFMPEG_PATH, [
-    "-reconnect", "1",
-    "-reconnect_streamed", "1",
-    "-reconnect_delay_max", "5",
-    "-headers", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    "-i", directUrl,
-    "-f", "s16le",
-    "-ar", "48000",
-    "-ac", "2",
-    "-vn",
-    "pipe:1",
-  ]);
-
-  ffmpeg.on("error", (err) => logger.error({ err }, "ffmpeg spawn error"));
-  ffmpeg.stderr.on("data", (d: Buffer) => {
-    const msg = d.toString().trim();
-    if (msg && !msg.includes("Press [q]")) logger.debug({ msg }, "ffmpeg stderr");
-  });
-  ffmpeg.on("close", (code) => {
-    if (code !== 0 && code !== null) logger.error({ code }, "ffmpeg exited with error");
-  });
-
-  return ffmpeg.stdout;
-}
-
-export async function searchSoundCloudMultiple(query: string, limit = 5): Promise<{ title: string; url: string; duration: string; thumbnail?: string }[]> {
+export async function searchSoundCloudMultiple(query: string, limit = 10): Promise<{ title: string; url: string; duration: string; thumbnail?: string }[]> {
   if (!query || query.trim().length < 2) return [];
   try {
     const results = await playdl.search(query, { source: { soundcloud: "tracks" }, limit });
@@ -218,11 +149,11 @@ export class GuildPlayer {
 
   async playTrack(track: Track): Promise<void> {
     this.clearInactivityTimer();
-    const directUrl = await getDirectUrl(track.url);
-    const stream = createFfmpegStream(directUrl);
+    logger.info({ url: track.url, title: track.title }, "Streaming track via play-dl");
 
-    const resource = createAudioResource(stream, {
-      inputType: StreamType.Raw,
+    const streamData = await playdl.stream(track.url);
+    const resource = createAudioResource(streamData.stream, {
+      inputType: streamData.type,
       inlineVolume: true,
     });
 
