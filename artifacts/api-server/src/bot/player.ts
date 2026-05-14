@@ -10,6 +10,7 @@ import {
 } from "@discordjs/voice";
 
 import { spawn, execFileSync } from "node:child_process";
+import playdl, { SoundCloudTrack } from "play-dl";
 import { MusicQueue, Track } from "./queue.js";
 import { logger } from "../lib/logger.js";
 
@@ -91,86 +92,48 @@ function createFfmpegStream(directUrl: string) {
 }
 
 export async function searchSoundCloudMultiple(query: string, limit = 5): Promise<{ title: string; url: string; duration: string; thumbnail?: string }[]> {
-  return new Promise((resolve) => {
-    if (!query || query.trim().length < 2) { resolve([]); return; }
-    const searchQuery = `scsearch${limit}:${query}`;
-    const proc = spawn(YTDLP_PATH, [
-      "--flat-playlist",
-      "--dump-json",
-      "--no-warnings",
-      searchQuery,
-    ]);
-    let output = "";
-    proc.stdout.on("data", (d: Buffer) => { output += d.toString(); });
-    proc.on("close", () => {
-      const results: { title: string; url: string; duration: string; thumbnail?: string }[] = [];
-      for (const line of output.trim().split("\n")) {
-        if (!line) continue;
-        try {
-          const info = JSON.parse(line) as { title?: string; webpage_url?: string; url?: string; duration?: number; thumbnail?: string };
-          results.push({
-            title: info.title ?? "Неизвестно",
-            url: info.webpage_url ?? info.url ?? "",
-            duration: formatDuration(info.duration ?? 0),
-            thumbnail: info.thumbnail,
-          });
-        } catch { /* skip bad lines */ }
-      }
-      resolve(results);
-    });
-    proc.on("error", () => resolve([]));
-  });
+  if (!query || query.trim().length < 2) return [];
+  try {
+    const results = await playdl.search(query, { source: { soundcloud: "tracks" }, limit });
+    return results.map((r) => ({
+      title: r.name,
+      url: r.url,
+      duration: formatDuration(r.durationInSec ?? 0),
+      thumbnail: typeof r.thumbnail === "string" ? r.thumbnail : undefined,
+    }));
+  } catch (err) {
+    logger.warn({ err }, "play-dl SoundCloud search failed");
+    return [];
+  }
 }
 
 export async function searchSoundCloud(query: string): Promise<{ title: string; url: string; duration: string; thumbnail?: string } | null> {
-  return new Promise((resolve) => {
+  try {
     const isUrl = query.startsWith("http://") || query.startsWith("https://");
-    const searchQuery = isUrl ? query : `scsearch1:${query}`;
-
-    const proc = spawn(YTDLP_PATH, [
-      "--flat-playlist",
-      "--dump-json",
-      "--no-warnings",
-      searchQuery,
-    ]);
-
-    let output = "";
-    let errOutput = "";
-    proc.stdout.on("data", (d: Buffer) => { output += d.toString(); });
-    proc.stderr.on("data", (d: Buffer) => { errOutput += d.toString(); });
-
-    proc.on("close", (code) => {
-      if (!output.trim()) {
-        logger.warn({ code, errOutput, query }, "yt-dlp returned no output");
-        resolve(null);
-        return;
-      }
-      try {
-        const firstLine = output.trim().split("\n")[0]!;
-        const info = JSON.parse(firstLine) as {
-          title?: string;
-          webpage_url?: string;
-          url?: string;
-          duration?: number;
-          thumbnail?: string;
-        };
-        resolve({
-          title: info.title ?? "Неизвестно",
-          url: info.webpage_url ?? info.url ?? searchQuery,
-          duration: formatDuration(info.duration ?? 0),
-          thumbnail: info.thumbnail,
-        });
-      } catch {
-        logger.warn({ output: output.slice(0, 200), query }, "Failed to parse yt-dlp JSON");
-        resolve(null);
-      }
-    });
-
-    proc.on("error", (err) => {
-      logger.error({ err }, "yt-dlp spawn error in search");
-      resolve(null);
-    });
-  });
+    if (isUrl) {
+      const info = await playdl.soundcloud(query);
+      if (info.type !== "track") return null;
+      const track = info as SoundCloudTrack;
+      return {
+        title: track.name,
+        url: track.url,
+        duration: formatDuration(track.durationInSec ?? 0),
+        thumbnail: typeof track.thumbnail === "string" ? track.thumbnail : undefined,
+      };
+    }
+    const results = await playdl.search(query, { source: { soundcloud: "tracks" }, limit: 1 });
+    if (!results.length) return null;
+    const r = results[0]!;
+    return {
+      title: r.name,
+      url: r.url,
+      duration: formatDuration(r.durationInSec ?? 0),
+      thumbnail: typeof r.thumbnail === "string" ? r.thumbnail : undefined,
+    };
+  } catch (err) {
+    logger.error({ err, query }, "play-dl search error");
+    return null;
+  }
 }
 
 function formatDuration(seconds: number): string {
