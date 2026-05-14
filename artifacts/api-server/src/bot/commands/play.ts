@@ -61,21 +61,32 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const player = getOrCreatePlayer(guildId);
 
   const isUrl = query.startsWith("http://") || query.startsWith("https://");
-  const info = isUrl
-    ? await searchSoundCloud(query)
-    : await searchSoundCloud(query);
 
-  if (!info) {
-    return interaction.editReply("❌ Ничего не найдено на SoundCloud.");
+  let track: Track;
+
+  if (isUrl) {
+    const info = await searchSoundCloud(query);
+    const titleFallback = decodeURIComponent(query.split("/").pop() ?? "Трек").replace(/-/g, " ");
+    track = {
+      title: info?.title ?? titleFallback,
+      url: query,
+      duration: info?.duration ?? "0:00",
+      requestedBy: interaction.user.username,
+      thumbnail: info?.thumbnail,
+    };
+  } else {
+    const info = await searchSoundCloud(query);
+    if (!info) {
+      return interaction.editReply("❌ Ничего не найдено на SoundCloud.");
+    }
+    track = {
+      title: info.title,
+      url: info.url,
+      duration: info.duration,
+      requestedBy: interaction.user.username,
+      thumbnail: info.thumbnail,
+    };
   }
-
-  const track: Track = {
-    title: info.title,
-    url: info.url,
-    duration: info.duration,
-    requestedBy: interaction.user.username,
-    thumbnail: info.thumbnail,
-  };
 
   if (!player.connection || player.connection.state.status === VoiceConnectionStatus.Destroyed) {
     const connection = joinVoiceChannel({
