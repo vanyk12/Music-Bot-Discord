@@ -1,0 +1,89 @@
+node:internal/modules/cjs/loader:1225
+  const err = new Error(message);
+              ^
+Error: Cannot find module 'play-audio'
+Require stack:
+- /app/artifacts/api-server/dist/index.mjs
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+    at Module._load (node:internal/modules/cjs/loader:1051:27)
+    at Module.require (node:internal/modules/cjs/loader:1311:19)
+    at require (node:internal/modules/helpers:179:18)
+    at ../../node_modules/.pnpm/play-dl@1.9.7/node_modules/play-dl/dist/index.js (/app/node_modules/.pnpm/play-dl@1.9.7/node_modules/play-dl/play-dl/YouTube/classes/WebmSeeker.ts:1:42)
+    at __require3 (file:///app/artifacts/api-server/dist/index.mjs:25:51)
+    at <anonymous> (/app/artifacts/api-server/src/bot/player.ts:13:41)
+    at ModuleJob.run (node:internal/modules/esm/module_job:234:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:473:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:122:5) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/app/artifacts/api-server/dist/index.mjs' ]
+}
+Node.js v20.18.1
+/app/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+Exit status 1
+> @workspace/api-server@0.0.0 start /app/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+node:internal/modules/cjs/loader:1225
+  const err = new Error(message);
+              ^
+Error: Cannot find module 'play-audio'
+Require stack:
+- /app/artifacts/api-server/dist/index.mjs
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+    at Module._load (node:internal/modules/cjs/loader:1051:27)
+    at Module.require (node:internal/modules/cjs/loader:1311:19)
+    at require (node:internal/modules/helpers:179:18)
+    at ../../node_modules/.pnpm/play-dl@1.9.7/node_modules/play-dl/dist/index.js (/app/node_modules/.pnpm/play-dl@1.9.7/node_modules/play-dl/play-dl/YouTube/classes/WebmSeeker.ts:1:42)
+    at __require3 (file:///app/artifacts/api-server/dist/index.mjs:25:51)
+    at ModuleJob.run (node:internal/modules/esm/module_job:234:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:473:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:122:5) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/app/artifacts/api-server/dist/index.mjs' ]
+}
+Node.js v20.18.1
+/app/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+Exit status 1
+> @workspace/api-server@0.0.0 start /app/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+  const err = new Error(message);
+              ^
+    at ../../node_modules/.pnpm/play-dl@1.9.7/node_modules/play-dl/dist/index.js (/app/node_modules/.pnpm/play-dl@1.9.7/node_modules/play-dl/play-dl/YouTube/classes/WebmSeeker.ts:1:42)
+    at __require3 (file:///app/artifacts/api-server/dist/index.mjs:25:51)
+Error: Cannot find module 'play-audio'
+    at <anonymous> (/app/artifacts/api-server/src/bot/player.ts:13:41)
+    at ModuleJob.run (node:internal/modules/esm/module_job:234:25)
+Exit status 1
+    at async ModuleLoader.import (node:internal/modules/esm/loader:473:24)
+- /app/artifacts/api-server/dist/index.mjs
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:122:5) {
+  code: 'MODULE_NOT_FOUND',
+    at Module._load (node:internal/modules/cjs/loader:1051:27)
+    at Module.require (node:internal/modules/cjs/loader:1311:19)
+  requireStack: [ '/app/artifacts/api-server/dist/index.mjs' ]
+Node.js v20.18.1
+/app/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+> node --enable-source-maps ./dist/index.mjs
+  const err = new Error(message);
+              ^
+Error: Cannot find module 'play-audio'
+Require stack:
+- /app/artifacts/api-server/dist/index.mjs
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+    at Module._load (node:internal/modules/cjs/loader:1051:27)
+    at Module.require (node:internal/modules/cjs/loader:1311:19)
+    at require (node:internal/modules/helpers:179:18)
+    at ../../node_modules/.pnpm/play-dl@1.9.7/node_modules/play-dl/dist/index.js (/app/node_modules/.pnpm/play-dl@1.9.7/node_modules/play-dl/play-dl/YouTube/classes/WebmSeeker.ts:1:42)
+    at __require3 (file:///app/artifacts/api-server/dist/index.mjs:25:51)
+    at <anonymous> (/app/artifacts/api-server/src/bot/player.ts:13:41)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:473:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:122:5) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/app/artifacts/api-server/dist/index.mjs' ]
+}
+/app/artifacts/api-server:
+Exit status 1
+Starting Container

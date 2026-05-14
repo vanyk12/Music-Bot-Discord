@@ -208,6 +208,9 @@ importers:
       pino-http:
         specifier: ^10
         version: 10.5.0
+      play-audio:
+        specifier: ^0.5.2
+        version: 0.5.2
       play-dl:
         specifier: ^1.9.7
         version: 1.9.7
