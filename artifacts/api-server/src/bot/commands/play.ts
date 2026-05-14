@@ -10,16 +10,16 @@ import {
   entersState,
 } from "@discordjs/voice";
 import { getOrCreatePlayer } from "../manager.js";
-import { searchYoutube } from "../player.js";
+import { searchSoundCloud } from "../player.js";
 import { Track } from "../queue.js";
 
 export const data = new SlashCommandBuilder()
   .setName("play")
-  .setDescription("Воспроизвести музыку с YouTube")
+  .setDescription("Воспроизвести музыку с SoundCloud")
   .addStringOption((opt) =>
     opt
       .setName("query")
-      .setDescription("Ссылка на YouTube или название песни")
+      .setDescription("Ссылка на SoundCloud или название песни")
       .setRequired(true),
   );
 
@@ -37,9 +37,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const guildId = interaction.guildId!;
   const player = getOrCreatePlayer(guildId);
 
-  const info = await searchYoutube(query);
+  const info = await searchSoundCloud(query);
   if (!info) {
-    return interaction.editReply("❌ Ничего не найдено или не удалось загрузить видео.");
+    return interaction.editReply("❌ Ничего не найдено на SoundCloud.");
   }
 
   const track: Track = {
@@ -73,7 +73,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   if (wasEmpty) {
     await player.start();
     const embed = new EmbedBuilder()
-      .setColor(0xff0000)
+      .setColor(0xff5500)
       .setTitle("▶️ Сейчас играет")
       .setDescription(`**[${track.title}](${track.url})**`)
       .addFields(
@@ -85,7 +85,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   } else {
     const pos = player.queue.size();
     const embed = new EmbedBuilder()
-      .setColor(0x5865f2)
+      .setColor(0xff5500)
       .setTitle("📋 Добавлено в очередь")
       .setDescription(`**[${track.title}](${track.url})**`)
       .addFields(
