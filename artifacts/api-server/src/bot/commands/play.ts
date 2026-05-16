@@ -4,9 +4,6 @@ import {
   GuildMember,
   SlashCommandBuilder,
   EmbedBuilder,
-  TextChannel,
-  NewsChannel,
-  ThreadChannel,
 } from "discord.js";
 import {
   joinVoiceChannel,
@@ -16,6 +13,7 @@ import {
 import { getOrCreatePlayer } from "../manager.js";
 import { searchSoundCloud, searchSoundCloudMultiple } from "../player.js";
 import { sendPanel } from "../panel.js";
+import { logger } from "../../lib/logger.js";
 import { Track } from "../queue.js";
 
 export const data = new SlashCommandBuilder()
@@ -137,8 +135,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return interaction.editReply(`❌ Не удалось воспроизвести трек: **${track.title}**\nПопробуй другой трек или ссылку.`);
     }
     const ch = interaction.channel;
-    if (ch instanceof TextChannel || ch instanceof NewsChannel || ch instanceof ThreadChannel) {
-      sendPanel(ch, player).catch(() => {});
+    if (ch && 'send' in ch) {
+      sendPanel(ch as Parameters<typeof sendPanel>[0], player).catch((err) => {
+        logger.error({ err }, "Failed to send panel from play command");
+      });
     }
     const embed = new EmbedBuilder()
       .setColor(0xff5500)

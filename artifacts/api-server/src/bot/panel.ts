@@ -1,18 +1,17 @@
 import {
-  TextChannel,
-  NewsChannel,
-  ThreadChannel,
   Message,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-
-type SendableChannel = TextChannel | NewsChannel | ThreadChannel;
-
 import { GuildPlayer } from "./player.js";
 import { logger } from "../lib/logger.js";
+
+type SendableChannel = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  send: (options: any) => Promise<Message>;
+};
 
 export const PANEL_ID_PREFIX = "music_";
 
