@@ -100,27 +100,18 @@ export class GuildPlayer {
 
     this.audioPlayer.on(AudioPlayerStatus.Idle, () => {
       if (this.queue.loop && this.queue.currentTrack) {
-        this.playTrack(this.queue.currentTrack).catch((err) =>
-          logger.error({ err }, "Error replaying track"),
-        );
+        this.playTrack(this.queue.currentTrack).catch((err) => {
+          logger.error({ err }, "Error replaying track — skipping");
+          this.playNext();
+        });
         return;
       }
-
-      const next = this.queue.dequeue();
-      if (next) {
-        this.queue.currentTrack = next;
-        this.playTrack(next).catch((err) =>
-          logger.error({ err }, "Error playing next track"),
-        );
-      } else {
-        this.queue.currentTrack = null;
-        this.startInactivityTimer();
-      }
+      this.playNext();
     });
 
     this.audioPlayer.on("error", (err) => {
-      logger.error({ err }, "AudioPlayer error");
-      this.startInactivityTimer();
+      logger.error({ err }, "AudioPlayer error — skipping to next track");
+      this.playNext();
     });
   }
 
@@ -139,6 +130,20 @@ export class GuildPlayer {
     if (this.inactivityTimer) {
       clearTimeout(this.inactivityTimer);
       this.inactivityTimer = null;
+    }
+  }
+
+  private playNext(): void {
+    const next = this.queue.dequeue();
+    if (next) {
+      this.queue.currentTrack = next;
+      this.playTrack(next).catch((err) => {
+        logger.error({ err, title: next.title }, "Error playing next track — skipping");
+        this.playNext();
+      });
+    } else {
+      this.queue.currentTrack = null;
+      this.startInactivityTimer();
     }
   }
 

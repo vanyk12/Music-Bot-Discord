@@ -32,6 +32,22 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
     return;
   }
   try {
+    const isUrl = focused.startsWith("http://") || focused.startsWith("https://");
+    if (isUrl) {
+      const info = await searchSoundCloud(focused);
+      if (info) {
+        await interaction.respond([{
+          name: `🎵 ${info.title} [${info.duration}]`.slice(0, 100),
+          value: info.url,
+        }]);
+      } else {
+        await interaction.respond([{
+          name: focused.slice(0, 100),
+          value: focused,
+        }]);
+      }
+      return;
+    }
     const results = await searchSoundCloudMultiple(focused, 10);
     await interaction.respond(
       results
