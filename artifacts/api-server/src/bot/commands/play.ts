@@ -125,7 +125,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   player.queue.enqueue(track);
 
   if (wasEmpty) {
-    await player.start();
+    try {
+      await player.start();
+    } catch (err) {
+      player.queue.clear();
+      player.queue.currentTrack = null;
+      return interaction.editReply(`❌ Не удалось воспроизвести трек: **${track.title}**\nПопробуй другой трек или ссылку.`);
+    }
     const embed = new EmbedBuilder()
       .setColor(0xff5500)
       .setTitle("▶️ Сейчас играет")
