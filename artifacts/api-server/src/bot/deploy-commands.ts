@@ -11,6 +11,7 @@ import * as loop from "./commands/loop.js";
 import * as shuffle from "./commands/shuffle.js";
 import * as nowplaying from "./commands/nowplaying.js";
 import * as remove from "./commands/remove.js";
+import * as playlist from "./commands/playlist.js";
 
 const commands = [
   play.data,
@@ -24,6 +25,7 @@ const commands = [
   shuffle.data,
   nowplaying.data,
   remove.data,
+  playlist.data,
 ].map((c) => c.toJSON());
 
 export async function deployCommands(token: string, clientId: string) {

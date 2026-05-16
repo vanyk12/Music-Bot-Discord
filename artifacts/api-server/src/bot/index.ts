@@ -19,6 +19,7 @@ import * as loop from "./commands/loop.js";
 import * as shuffle from "./commands/shuffle.js";
 import * as nowplaying from "./commands/nowplaying.js";
 import * as remove from "./commands/remove.js";
+import * as playlist from "./commands/playlist.js";
 
 type Command = {
   data: { name: string };
@@ -27,7 +28,7 @@ type Command = {
 };
 
 const commandMap = new Map<string, Command>();
-for (const cmd of [play, pause, resume, skip, stop, volume, queue, loop, shuffle, nowplaying, remove]) {
+for (const cmd of [play, pause, resume, skip, stop, volume, queue, loop, shuffle, nowplaying, remove, playlist]) {
   commandMap.set(cmd.data.name, cmd as Command);
 }
 

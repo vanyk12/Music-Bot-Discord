@@ -22,6 +22,27 @@ export async function initializeSoundCloud(): Promise<void> {
   }
 }
 
+export async function getSoundCloudPlaylist(url: string): Promise<{ title: string; tracks: { title: string; url: string; duration: string; thumbnail?: string }[] } | null> {
+  try {
+    const info = await playdl.soundcloud(url);
+    if (info.type !== "playlist") return null;
+    const playlist = info as import("play-dl").SoundCloudPlaylist;
+    const allTracks = await playlist.all_tracks();
+    return {
+      title: playlist.name,
+      tracks: allTracks.map((t) => ({
+        title: t.name,
+        url: t.url,
+        duration: formatDuration(t.durationInSec ?? 0),
+        thumbnail: typeof t.thumbnail === "string" ? t.thumbnail : undefined,
+      })),
+    };
+  } catch (err) {
+    logger.warn({ err, url }, "Failed to fetch SoundCloud playlist");
+    return null;
+  }
+}
+
 export async function searchSoundCloudMultiple(query: string, limit = 10): Promise<{ title: string; url: string; duration: string; thumbnail?: string }[]> {
   if (!query || query.trim().length < 2) return [];
   try {
