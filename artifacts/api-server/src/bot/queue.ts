@@ -15,6 +15,10 @@ export class MusicQueue {
     this.tracks.push(track);
   }
 
+  enqueueFirst(track: Track) {
+    this.tracks.unshift(track);
+  }
+
   dequeue(): Track | null {
     if (this.tracks.length === 0) return null;
     return this.tracks.shift()!;

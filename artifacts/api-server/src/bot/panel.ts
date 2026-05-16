@@ -81,7 +81,20 @@ export function buildPanelRows(player: GuildPlayer): ActionRowBuilder<ButtonBuil
       .setDisabled(player.volume >= 200),
   );
 
-  return [row1, row2];
+  const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`music_prev_${player.guildId}`)
+      .setLabel("⏮️ Назад")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(player.history.length === 0),
+    new ButtonBuilder()
+      .setCustomId(`music_shuffle_${player.guildId}`)
+      .setLabel("🔀 Перемешать")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(player.queue.size() < 2),
+  );
+
+  return [row1, row2, row3];
 }
 
 const panelMessages = new Map<string, Message>();

@@ -103,6 +103,8 @@ function pad(n: number): string {
 
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
+const MAX_HISTORY = 20;
+
 export class GuildPlayer {
   public readonly guildId: string;
   public queue: MusicQueue;
@@ -110,6 +112,7 @@ export class GuildPlayer {
   public audioPlayer: AudioPlayer;
   public volume = 100;
   public paused = false;
+  public history: Track[] = [];
   public onPanelUpdate: (() => void) | null = null;
   public onPanelDelete: (() => void) | null = null;
   private inactivityTimer: ReturnType<typeof setTimeout> | null = null;
@@ -157,6 +160,10 @@ export class GuildPlayer {
   }
 
   private playNext(): void {
+    if (this.queue.currentTrack) {
+      this.history.push(this.queue.currentTrack);
+      if (this.history.length > MAX_HISTORY) this.history.shift();
+    }
     const next = this.queue.dequeue();
     if (next) {
       this.queue.currentTrack = next;
@@ -171,6 +178,26 @@ export class GuildPlayer {
       this.onPanelUpdate?.();
       this.startInactivityTimer();
     }
+  }
+
+  playPrevious(): void {
+    const prev = this.history.pop();
+    if (!prev) return;
+    if (this.queue.currentTrack) {
+      this.queue.enqueueFirst(this.queue.currentTrack);
+    }
+    this.queue.currentTrack = prev;
+    this.playTrack(prev)
+      .then(() => { this.onPanelUpdate?.(); })
+      .catch((err) => {
+        logger.error({ err, title: prev.title }, "Error playing previous track");
+        this.playNext();
+      });
+  }
+
+  shuffleQueue(): void {
+    this.queue.shuffle();
+    this.onPanelUpdate?.();
   }
 
   setConnection(connection: VoiceConnection) {

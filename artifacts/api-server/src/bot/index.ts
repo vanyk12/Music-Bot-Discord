@@ -75,6 +75,14 @@ async function handlePanelButton(interaction: ButtonInteraction): Promise<void> 
       player.setVolume(Math.min(200, player.volume + 10));
       break;
     }
+    case "prev": {
+      player.playPrevious();
+      break;
+    }
+    case "shuffle": {
+      player.shuffleQueue();
+      break;
+    }
     default:
       break;
   }
