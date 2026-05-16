@@ -110,6 +110,8 @@ export class GuildPlayer {
   public audioPlayer: AudioPlayer;
   public volume = 100;
   public paused = false;
+  public onPanelUpdate: (() => void) | null = null;
+  public onPanelDelete: (() => void) | null = null;
   private inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(guildId: string) {
@@ -158,12 +160,15 @@ export class GuildPlayer {
     const next = this.queue.dequeue();
     if (next) {
       this.queue.currentTrack = next;
-      this.playTrack(next).catch((err) => {
-        logger.error({ err, title: next.title }, "Error playing next track — skipping");
-        this.playNext();
-      });
+      this.playTrack(next)
+        .then(() => { this.onPanelUpdate?.(); })
+        .catch((err) => {
+          logger.error({ err, title: next.title }, "Error playing next track — skipping");
+          this.playNext();
+        });
     } else {
       this.queue.currentTrack = null;
+      this.onPanelUpdate?.();
       this.startInactivityTimer();
     }
   }
@@ -202,6 +207,7 @@ export class GuildPlayer {
     if (this.audioPlayer.state.status === AudioPlayerStatus.Playing) {
       this.audioPlayer.pause();
       this.paused = true;
+      this.onPanelUpdate?.();
       return true;
     }
     return false;
@@ -211,6 +217,7 @@ export class GuildPlayer {
     if (this.audioPlayer.state.status === AudioPlayerStatus.Paused) {
       this.audioPlayer.unpause();
       this.paused = false;
+      this.onPanelUpdate?.();
       return true;
     }
     return false;
@@ -235,6 +242,10 @@ export class GuildPlayer {
     this.audioPlayer.stop(true);
     this.connection?.destroy();
     this.connection = null;
+    const del = this.onPanelDelete;
+    this.onPanelUpdate = null;
+    this.onPanelDelete = null;
+    del?.();
   }
 
   setVolume(vol: number): boolean {
@@ -248,6 +259,7 @@ export class GuildPlayer {
       const resource = (state as { resource?: { volume?: { setVolumeLogarithmic: (v: number) => void } } }).resource;
       resource?.volume?.setVolumeLogarithmic(vol / 100);
     }
+    this.onPanelUpdate?.();
     return true;
   }
 

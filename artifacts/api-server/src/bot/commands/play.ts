@@ -12,6 +12,7 @@ import {
 } from "@discordjs/voice";
 import { getOrCreatePlayer } from "../manager.js";
 import { searchSoundCloud, searchSoundCloudMultiple } from "../player.js";
+import { sendPanel } from "../panel.js";
 import { Track } from "../queue.js";
 
 export const data = new SlashCommandBuilder()
@@ -131,6 +132,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       player.queue.clear();
       player.queue.currentTrack = null;
       return interaction.editReply(`❌ Не удалось воспроизвести трек: **${track.title}**\nПопробуй другой трек или ссылку.`);
+    }
+    const { TextChannel } = await import("discord.js");
+    if (interaction.channel instanceof TextChannel) {
+      sendPanel(interaction.channel, player).catch(() => {});
     }
     const embed = new EmbedBuilder()
       .setColor(0xff5500)

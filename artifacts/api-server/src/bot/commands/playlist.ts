@@ -11,6 +11,7 @@ import {
 } from "@discordjs/voice";
 import { getOrCreatePlayer } from "../manager.js";
 import { getSoundCloudPlaylist } from "../player.js";
+import { sendPanel } from "../panel.js";
 
 export const data = new SlashCommandBuilder()
   .setName("playlist")
@@ -82,6 +83,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       player.queue.clear();
       player.queue.currentTrack = null;
       return interaction.editReply(`❌ Не удалось воспроизвести первый трек плейлиста. Попробуй другой плейлист.`);
+    }
+    const { TextChannel } = await import("discord.js");
+    if (interaction.channel instanceof TextChannel) {
+      sendPanel(interaction.channel, player).catch(() => {});
     }
   }
 

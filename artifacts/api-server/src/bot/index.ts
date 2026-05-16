@@ -4,10 +4,13 @@ import {
   Interaction,
   ChatInputCommandInteraction,
   AutocompleteInteraction,
+  ButtonInteraction,
 } from "discord.js";
 import { logger } from "../lib/logger.js";
 import { deployCommands } from "./deploy-commands.js";
 import { initializeSoundCloud } from "./player.js";
+import { getOrCreatePlayer } from "./manager.js";
+import { PANEL_ID_PREFIX } from "./panel.js";
 import * as play from "./commands/play.js";
 import * as pause from "./commands/pause.js";
 import * as resume from "./commands/resume.js";
@@ -30,6 +33,51 @@ type Command = {
 const commandMap = new Map<string, Command>();
 for (const cmd of [play, pause, resume, skip, stop, volume, queue, loop, shuffle, nowplaying, remove, playlist]) {
   commandMap.set(cmd.data.name, cmd as Command);
+}
+
+async function handlePanelButton(interaction: ButtonInteraction): Promise<void> {
+  const id = interaction.customId;
+  const withoutPrefix = id.slice(PANEL_ID_PREFIX.length);
+  const underscoreIdx = withoutPrefix.indexOf("_");
+  if (underscoreIdx === -1) return;
+
+  const action = withoutPrefix.slice(0, underscoreIdx);
+  const guildId = withoutPrefix.slice(underscoreIdx + 1);
+
+  if (!guildId || guildId !== interaction.guildId) return;
+
+  const player = getOrCreatePlayer(guildId);
+
+  await interaction.deferUpdate();
+
+  switch (action) {
+    case "pause": {
+      if (player.paused) {
+        player.resume();
+      } else {
+        player.pause();
+      }
+      break;
+    }
+    case "skip": {
+      player.skip();
+      break;
+    }
+    case "stop": {
+      player.stop();
+      break;
+    }
+    case "voldown": {
+      player.setVolume(Math.max(0, player.volume - 10));
+      break;
+    }
+    case "volup": {
+      player.setVolume(Math.min(200, player.volume + 10));
+      break;
+    }
+    default:
+      break;
+  }
 }
 
 export async function startBot() {
@@ -63,6 +111,17 @@ export async function startBot() {
   });
 
   client.on("interactionCreate", async (interaction: Interaction) => {
+    if (interaction.isButton()) {
+      if (interaction.customId.startsWith(PANEL_ID_PREFIX)) {
+        try {
+          await handlePanelButton(interaction as ButtonInteraction);
+        } catch (err) {
+          logger.error({ err }, "Ошибка обработки кнопки панели");
+        }
+      }
+      return;
+    }
+
     if (interaction.isAutocomplete()) {
       const command = commandMap.get(interaction.commandName);
       if (command?.autocomplete) {
