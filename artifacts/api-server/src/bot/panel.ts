@@ -1,11 +1,16 @@
 import {
   TextChannel,
+  NewsChannel,
+  ThreadChannel,
   Message,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
+
+type SendableChannel = TextChannel | NewsChannel | ThreadChannel;
+
 import { GuildPlayer } from "./player.js";
 import { logger } from "../lib/logger.js";
 
@@ -82,7 +87,7 @@ export function buildPanelRows(player: GuildPlayer): ActionRowBuilder<ButtonBuil
 
 const panelMessages = new Map<string, Message>();
 
-export async function sendPanel(channel: TextChannel, player: GuildPlayer): Promise<void> {
+export async function sendPanel(channel: SendableChannel, player: GuildPlayer): Promise<void> {
   await deletePanel(player.guildId);
 
   try {

@@ -3,6 +3,9 @@ import {
   GuildMember,
   SlashCommandBuilder,
   EmbedBuilder,
+  TextChannel,
+  NewsChannel,
+  ThreadChannel,
 } from "discord.js";
 import {
   joinVoiceChannel,
@@ -84,9 +87,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       player.queue.currentTrack = null;
       return interaction.editReply(`❌ Не удалось воспроизвести первый трек плейлиста. Попробуй другой плейлист.`);
     }
-    const { TextChannel } = await import("discord.js");
-    if (interaction.channel instanceof TextChannel) {
-      sendPanel(interaction.channel, player).catch(() => {});
+    const ch = interaction.channel;
+    if (ch instanceof TextChannel || ch instanceof NewsChannel || ch instanceof ThreadChannel) {
+      sendPanel(ch, player).catch(() => {});
     }
   }
 
